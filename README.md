@@ -30,7 +30,7 @@ Built with **Python** and **Telethon**.
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/irfanulamin/teleshift.git
+git clone https://github.com/irfanulamin/TeleShift.git
 cd teleshift
 ```
 
@@ -67,10 +67,10 @@ pip install telethon rich python-dotenv
 ```env
 API_ID=your_api_id
 API_HASH=your_api_hash
-PHONE=+8801XXXXXXXXX
+PHONE=your_phone_number
 
-SOURCE_CHANNEL=-1001234567890
-DEST_CHANNEL=-1009876543210
+SOURCE_CHANNEL=your_source_channel
+DEST_CHANNEL=your_destination_channel
 ```
 
 ---
