@@ -476,7 +476,7 @@ async def migrate(dry_run: bool = False) -> None:
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
-        description="TelegramVault — media-only channel migration tool",
+        description="TeleShift: copy media from one Telegram channel to another",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument(

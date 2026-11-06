@@ -1,174 +1,91 @@
 # TeleShift
 
-Simple tool to move media from one Telegram channel to another.
-
-Built with **Python** and **Telethon**.
+A command-line tool that copies all media from one Telegram channel to another. It runs on your own Telegram account through Telethon, works through the channel history in batches, and saves its place so a long migration can be stopped and resumed.
 
 ## What it does
 
-- Copies photos, videos, files, and other media
-- Skips text-only messages
-- Removes captions
-- Supports albums / grouped media
-- Saves progress so you can continue later
-- Handles Telegram flood waits automatically
-- Shows live progress in terminal
-- Supports restart with saved state
-
----
+- Copies photos, videos, documents and other files
+- Keeps albums together as one post
+- Skips text-only messages, polls and link previews
+- Drops captions, so only the media is copied
+- Saves progress after every batch and resumes from there
+- Waits out Telegram flood limits and backs off on errors
+- Shows a live progress bar and writes a log file
+- Has a dry run that counts what would be copied without sending anything
 
 ## Requirements
 
 - Python 3.9+
-- Telegram account
-- Telegram API ID + API Hash
-
----
+- A Telegram account that can read the source channel and post in the destination channel
+- An API ID and API hash from [my.telegram.org](https://my.telegram.org) (API development tools → create an app)
 
 ## Setup
 
-### 1. Clone the repo
-
 ```bash
-git clone https://github.com/irfanulamin/TeleShift.git
-cd teleshift
-```
-
-### 2. Create a virtual environment
-
-```bash
+git clone https://github.com/Irfanulamin/TeleShift.git
+cd TeleShift
 python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env
 ```
 
-### 3. Activate the virtual environment
+Then fill in `.env`:
 
-**Windows:**
+| Variable         | Description                                                  |
+| ---------------- | ------------------------------------------------------------ |
+| `API_ID`         | From my.telegram.org                                         |
+| `API_HASH`       | From my.telegram.org                                         |
+| `PHONE`          | Your number with country code, e.g. `+8801XXXXXXXXX`         |
+| `SOURCE_CHANNEL` | Numeric ID of the channel to copy from, e.g. `-1001234567890` |
+| `DEST_CHANNEL`   | Numeric ID of the channel to copy to                         |
+
+Both channel values must be numeric IDs, not usernames. An easy way to find one is to forward a post from the channel to [@userinfobot](https://t.me/userinfobot).
+
+## Usage
 
 ```bash
-venv\Scripts\activate
+python tg_migrate.py             # start, or continue where it stopped
+python tg_migrate.py --dry-run   # count copyable messages, send nothing
+python tg_migrate.py --reset     # forget saved progress and start over
 ```
 
-**Mac / Linux:**
+The first run asks for the login code Telegram sends you. After that the session is saved locally and you won't be asked again.
 
-```bash
-source venv/bin/activate
-```
+## Tuning
 
-> You should see `(venv)` at the start of your terminal line after activation.
+The defaults in the `Config` class at the top of `tg_migrate.py` are on the safe side for Telegram's rate limits:
 
-### 4. Install packages
+| Setting       | Default | Meaning                              |
+| ------------- | ------- | ------------------------------------ |
+| `batch_size`  | 50      | Messages fetched per request         |
+| `msg_delay`   | 1.5 s   | Pause between sends                  |
+| `batch_delay` | 3.0 s   | Pause between batches                |
+| `max_retries` | 5       | Attempts per message before skipping |
 
-```bash
-pip install telethon rich python-dotenv
-```
+Lowering the delays makes flood waits more likely, which ends up slower.
 
-### 5. Create a `.env` file
+## Files it creates
 
-```env
-API_ID=your_api_id
-API_HASH=your_api_hash
-PHONE=your_phone_number
+| File                    | Purpose                                  |
+| ----------------------- | ---------------------------------------- |
+| `vault_session.session` | Your Telegram login. Keep it private.    |
+| `vault_progress.json`   | Last processed message, used for resume  |
+| `vault.log`             | Full log of the run                      |
 
-SOURCE_CHANNEL=your_source_channel
-DEST_CHANNEL=your_destination_channel
-```
-
----
-
-## Get API Credentials
-
-Go to:
-
-https://my.telegram.org
-
-Log in with your Telegram account, create an app, and copy:
-
-- `API_ID`
-- `API_HASH`
-
----
-
-## Run
-
-Make sure the virtual environment is active before running any command.
-
-Run the migration:
-
-```bash
-python tg_migrate.py
-```
-
-Reset saved progress and start over:
-
-```bash
-python tg_migrate.py --reset
-```
-
-Dry run (counts messages without sending anything):
-
-```bash
-python tg_migrate.py --dry-run
-```
-
----
-
-## VS Code Setup
-
-If you are using VS Code and see import errors for `telethon` or `rich`:
-
-1. Press `Ctrl+Shift+P`
-2. Select **Python: Select Interpreter**
-3. Choose the interpreter inside your `venv` folder:
-   - Windows: `.\venv\Scripts\python.exe`
-   - Mac/Linux: `./venv/bin/python`
-
-The red underlines will disappear after selecting the correct interpreter.
-
----
-
-## Files
-
-| File                    | Description                          |
-| ----------------------- | ------------------------------------ |
-| `tg_migrate.py`         | Main script                          |
-| `.env`                  | Your credentials (never share this)  |
-| `vault_progress.json`   | Saved progress (auto-created)        |
-| `vault.log`             | Logs (auto-created)                  |
-| `vault_session.session` | Telegram session file (auto-created) |
-
----
+All three are in `.gitignore`. Anyone with the `.session` file can use your Telegram account, so never share or commit it.
 
 ## Troubleshooting
 
-**`Import "telethon" could not be resolved`**
-→ Packages are not installed in the active interpreter. Follow the VS Code Setup section above.
-
-**`No module named 'dotenv'`**
-→ Run `pip install python-dotenv` inside your activated venv.
-
-**`The channel specified is private`**
-→ Make sure your Telegram account is a member of the source channel.
-
-**`ChatWriteForbiddenError`**
-→ Your account does not have permission to post in the destination channel. Make sure you are an admin there.
-
-**Flood wait errors**
-→ Normal behavior. The script waits automatically and resumes. Do not interrupt it.
-
-**Script stopped halfway**
-→ Just run `python tg_migrate.py` again. It will resume from where it left off.
-
----
-
-## Notes
-
-- You need access to the source channel
-- You need permission to post in the destination channel
-- Large transfers may take time because of Telegram rate limits
-- Never share your `.env` file or `vault_session.session` file
-
----
+- **The channel specified is private:** your account isn't a member of the source channel.
+- **ChatWriteForbiddenError:** your account can't post in the destination channel. Make it an admin there.
+- **Long pauses with "flood wait" in the log:** expected. Telegram is rate limiting you and the script continues on its own.
+- **It stopped partway:** run the same command again and it continues from the saved position.
 
 ## Disclaimer
 
-Use only for content you own or have permission to move. The author is not responsible for misuse.
+Only move content you own or have permission to copy.
+
+## License
+
+[MIT](LICENSE)

@@ -1,0 +1,10 @@
+.env
+*.session
+*.session-journal
+vault_progress.json
+vault.log
+
+__pycache__/
+*.pyc
+venv/
+.venv/
